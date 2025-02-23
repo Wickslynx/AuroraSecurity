@@ -1,4 +1,4 @@
-/*#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -8,14 +8,13 @@
 #define KEY_ROUNDS 16
 #define SALT_LENGTH 16
 
-// Structure for encryption context
+
 typedef struct {
     uint32_t key[KEY_ROUNDS];
     uint8_t salt[SALT_LENGTH];
     uint32_t rounds;
 } CryptoContext;
 
-// Custom secure random number generator using multiple seeds
 uint32_t secure_rand(void) {
     static uint32_t state = 0;
     state = state * 1103515245 + 12345;
@@ -24,26 +23,25 @@ uint32_t secure_rand(void) {
     return state;
 }
 
-// Function to generate a key from password
+
 void generate_key(CryptoContext *ctx, const char *password) {
-    uint32_t hash = 0x5A827999;  // Initial hash value (from SHA-1)
+    uint32_t hash = 0x5A827999;  
     size_t pass_len = strlen(password);
     
-    // Generate random salt
+
     for (int i = 0; i < SALT_LENGTH; i++) {
         ctx->salt[i] = secure_rand() & 0xFF;
     }
     
-    // Key expansion using password and salt
+
     for (int round = 0; round < KEY_ROUNDS; round++) {
         hash = 0;
         for (size_t i = 0; i < pass_len; i++) {
             hash += (password[i] + ctx->salt[i % SALT_LENGTH]) * (i + round + 1);
-            hash = (hash << 7) | (hash >> 25);  // Rotate left by 7
+            hash = (hash << 7) | (hash >> 25);  
             hash ^= ctx->salt[(i + round) % SALT_LENGTH];
         }
         
-        // Additional mixing
         hash = hash ^ (hash >> 16);
         hash = hash * 0x85ebca6b;
         hash = hash ^ (hash >> 13);
@@ -54,47 +52,39 @@ void generate_key(CryptoContext *ctx, const char *password) {
     }
 }
 
-// Custom block cipher round function
+
 void cipher_round(uint8_t *block, uint32_t round_key) {
     uint32_t *block32 = (uint32_t *)block;
-    
-    // Mix the block with the round key
+
     for (int i = 0; i < BLOCK_SIZE/4; i++) {
         block32[i] ^= round_key;
-        // Rotate and mix
         block32[i] = (block32[i] << 3) | (block32[i] >> 29);
         block32[i] ^= (block32[i] >> 7) & 0x01010101;
-        // Additional substitution
         for (int j = 0; j < 4; j++) {
             uint8_t byte = (block32[i] >> (j * 8)) & 0xFF;
-            // Custom S-box operation
             byte = ((byte * 7) ^ 0x3D) + (byte >> 5);
             block32[i] &= ~(0xFF << (j * 8));
             block32[i] |= (uint32_t)byte << (j * 8);
         }
     }
     
-    // Block mixing
+  
     for (int i = 0; i < BLOCK_SIZE - 1; i++) {
         block[i] ^= block[i + 1];
     }
     block[BLOCK_SIZE - 1] ^= block[0];
 }
-
-// Function to encrypt a block of data
 void encrypt_block(CryptoContext *ctx, uint8_t *block) {
-    // Initial mixing
     for (int i = 0; i < BLOCK_SIZE; i++) {
         block[i] ^= ctx->salt[i % SALT_LENGTH];
     }
     
-    // Multiple rounds of encryption
+
     for (uint32_t round = 0; round < ctx->rounds; round++) {
         cipher_round(block, ctx->key[round % KEY_ROUNDS]);
         
-        // Additional mixing between rounds
         if (round % 2 == 0) {
-            // Rotate block right
+
             uint8_t last = block[BLOCK_SIZE - 1];
             for (int i = BLOCK_SIZE - 1; i > 0; i--) {
                 block[i] = block[i - 1];
@@ -252,11 +242,3 @@ int main() {
     
     return 0;
 }
-*/
-
-
-
-
-
-
-
