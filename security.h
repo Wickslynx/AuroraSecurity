@@ -1,37 +1,46 @@
-#include <stdio.h>
-#include <string.h>
+#ifndef SECURITY_H
+#define SECURITY_H
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <string.h>
 
-char* decrypt(char* code) {
-    int hash = ((strlen(code) - 3) / 3) + 2;
-    char* decrypt = malloc(hash);
-    char* toFree = decrypt;
-    char* word = code;
-    for (int ch = *code; ch != '\0'; ch = *(++code))
-    {
-        if((code - word + 2) % 3  == 1){
-            *(decrypt++) = ch - (word - code + 1) - hash;
-        }
-    }
-    *decrypt = '\0';
-    return toFree;
+typedef struct {
+    char* (*decrypt)(const char* key, const char *input);
+    char* (*encrypt)(const char* key, const char *input);
+} securityf;
+
+static securityf security;
+
+char* encrypt(const char *key, const char *input);
+char* decrypt(const char *key, const char *input);
+
+__attribute__((constructor))
+void init_security() {
+    security.encrypt = encrypt;
+    security.decrypt = decrypt;
 }
 
+char* decrypt(const char *key, const char *input) {
+    size_t key_len = strlen(key);
+    size_t input_len = strlen(input);
 
-char *encrypt(char* decrypt) {
-    int length = strlen(decrypt) + 1;
-    char* code = malloc(length * 3);
-    
-    int c = -1;
-    for (int d = 0; d < length; d++)
-    {
-        code[++c] = '*'; 
-        code[++c] = '*'; 
-        code[++c] = decrypt[d] - c + length + 1;
+    char *output = malloc(input_len + 1);
+    if (output == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
     }
 
-    code[c] = '\0';
-    return code;
+    for (size_t i = 0; i < input_len; i++) {
+        output[i] = input[i] ^ key[i % key_len];
+    }
+    output[input_len] = '\0';
+
+    return output;
 }
+
+char* encrypt(const char *key, const char *input) {
+    return decrypt(key, input);
+}
+
+#endif
